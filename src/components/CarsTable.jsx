@@ -1,12 +1,8 @@
-import { Button, Space, Table } from 'antd'
+import { SearchOutlined } from '@ant-design/icons';
+import { Button, Input, message, Space, Table } from 'antd'
 import axios from 'axios'
 import React from 'react'
-// import {carsData} from '../App'
-
-
-
-
-
+import Highlighter from 'react-highlight-words';
 
 class CarsTable extends React.Component {
     state = {
@@ -23,12 +19,11 @@ class CarsTable extends React.Component {
         });
     };
 
-    async componentWillMount() {
+    async componentDidMount() {
 
         await axios.get('https://city-mobil.ru/api/cars').then(v => {
-            // carsData = v.data;
             this.setState({
-                dataSource: v.data.cars.map(v => {
+                dataSource: v.data.cars.map((v, i) => {
                     let data = {
                         mark: v.mark + " " + v.model
                     }
@@ -48,21 +43,95 @@ class CarsTable extends React.Component {
                         data.bis = v.tariffs.Бизнес.year
                     else data.bis = '-'
                     data.com1 = '-'
+                    data.key = i;
                     return data;
                 })
             })
         })
-        // console.log('carsData--' + carsData)
     }
+
+    getColumnSearchProps = dataIndex => ({
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+            <div style={{ padding: 8 }}>
+                <Input
+                    ref={node => {
+                        this.searchInput = node;
+                    }}
+                    placeholder={`Search ${dataIndex}`}
+                    value={selectedKeys[0]}
+                    onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onPressEnter={() => this.handleSearch(selectedKeys, confirm, dataIndex)}
+                    style={{ marginBottom: 8, display: 'block' }}
+                />
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={() => this.handleSearch(selectedKeys, confirm, dataIndex)}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Search
+                    </Button>
+                    <Button onClick={() => this.handleReset(clearFilters)} size="small" style={{ width: 90 }}>
+                        Reset
+                    </Button>
+                    <Button
+                        type="link"
+                        size="small"
+                        onClick={() => {
+                            confirm({ closeDropdown: false });
+                            this.setState({
+                                searchText: selectedKeys[0],
+                                searchedColumn: dataIndex,
+                            });
+                        }}
+                    >
+                        Filter
+                    </Button>
+                </Space>
+            </div>
+        ),
+        filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+        onFilter: (value, record) =>
+            record[dataIndex]
+                ? record[dataIndex].toString().toLowerCase().includes(value.toLowerCase())
+                : '',
+        onFilterDropdownVisibleChange: visible => {
+            if (visible) {
+                setTimeout(() => this.searchInput.select(), 100);
+            }
+        },
+        render: text =>
+            this.state.searchedColumn === dataIndex ? (
+                <Highlighter
+                    highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+                    searchWords={[this.state.searchText]}
+                    autoEscape
+                    textToHighlight={text ? text.toString() : ''}
+                />
+            ) : (
+                text
+            ),
+    });
+
+    handleSearch = (selectedKeys, confirm, dataIndex) => {
+        confirm();
+        this.setState({
+            searchText: selectedKeys[0],
+            searchedColumn: dataIndex,
+        });
+    };
+
+    handleReset = clearFilters => {
+        clearFilters();
+        this.setState({ searchText: '' });
+    };
 
     render() {
         let { sortedInfo, filteredInfo } = this.state;
         sortedInfo = sortedInfo || {};
         filteredInfo = filteredInfo || {};
-
-        // let dataSource;
-
-        // let carsData;
 
         const columns = [
             {
@@ -71,9 +140,21 @@ class CarsTable extends React.Component {
                 key: 'mark',
                 filteredValue: filteredInfo.name || null,
                 onFilter: (value, record) => record.mark.includes(value),
-                sorter: (a, b) => a.mark > b.mark,
+                sorter: (a, b) => {
+                    let nameA = a.mark.toUpperCase();
+                    let nameB = b.mark.toUpperCase();
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+
+                    return 0;
+                },
                 sortOrder: sortedInfo.columnKey === 'mark' && sortedInfo.order,
                 ellipsis: true,
+                ...this.getColumnSearchProps('mark')
             },
             {
                 title: 'Эконом',
@@ -81,9 +162,19 @@ class CarsTable extends React.Component {
                 key: 'eco',
                 filteredValue: filteredInfo.name || null,
                 onFilter: (value, record) => record.eco.includes(value),
-                sorter: (a, b) => a.eco - b.eco,
+                sorter: (a, b) => {
+                    if (a.eco === '-') return -1
+                    if (b.eco === '-') return 1
+                    return a.eco - b.eco
+                },
                 sortOrder: sortedInfo.columnKey === 'eco' && sortedInfo.order,
                 ellipsis: true,
+                ...this.getColumnSearchProps('eco'),
+                render: (text, record) => (
+                    <Space size="middle" onClick={() => { if (record.eco !== '-') message.info('Выбран автомобиль ' + record.mark + ' ' + record.eco + " года ввыпуска") }}>
+                        {record.eco}
+                    </Space>
+                )
             },
             {
                 title: 'Комфорт',
@@ -91,9 +182,19 @@ class CarsTable extends React.Component {
                 key: 'com',
                 filteredValue: filteredInfo.name || null,
                 onFilter: (value, record) => record.com.includes(value),
-                sorter: (a, b) => a.com - b.com,
+                sorter: (a, b) => {
+                    if (a.com === '-') return -1
+                    if (b.com === '-') return 1
+                    return a.com - b.com
+                },
                 sortOrder: sortedInfo.columnKey === 'com' && sortedInfo.order,
                 ellipsis: true,
+                ...this.getColumnSearchProps('com'),
+                render: (text, record) => (
+                    <Space size="middle" onClick={() => { if (record.com !== '-') message.info('Выбран автомобиль ' + record.mark + ' ' + record.com + " года ввыпуска") }}>
+                        {record.com}
+                    </Space>
+                ),
             },
             {
                 title: 'Комфорт+',
@@ -101,9 +202,19 @@ class CarsTable extends React.Component {
                 key: 'com1',
                 filteredValue: filteredInfo.com1 || null,
                 onFilter: (value, record) => record.com1.includes(value),
-                sorter: (a, b) => a.com1 - b.com1,
+                sorter: (a, b) => {
+                    if (a.com1 === '-') return -1
+                    if (b.com1 === '-') return 1
+                    return a.com1 - b.com1
+                },
                 sortOrder: sortedInfo.columnKey === 'com1' && sortedInfo.order,
                 ellipsis: true,
+                ...this.getColumnSearchProps('com1'),
+                render: (text, record) => (
+                    <Space size="middle" onClick={() => { if (record.com1 !== '-') message.info('Выбран автомобиль ' + record.mark + ' ' + record.com1 + " года ввыпуска") }}>
+                        {record.com1}
+                    </Space>
+                ),
             },
             {
                 title: 'Минивен',
@@ -111,9 +222,19 @@ class CarsTable extends React.Component {
                 key: 'min',
                 filteredValue: filteredInfo.min || null,
                 onFilter: (value, record) => record.min.includes(value),
-                sorter: (a, b) => a.min - b.min,
+                sorter: (a, b) => {
+                    if (a.min === '-') return -1
+                    if (b.min === '-') return 1
+                    return a.min - b.min
+                },
                 sortOrder: sortedInfo.columnKey === 'min' && sortedInfo.order,
                 ellipsis: true,
+                ...this.getColumnSearchProps('min'),
+                render: (text, record) => (
+                    <Space size="middle" onClick={() => { if (record.min !== '-') message.info('Выбран автомобиль ' + record.mark + ' ' + record.min + " года ввыпуска") }}>
+                        {record.min}
+                    </Space>
+                ),
             },
             {
                 title: 'Бизнес',
@@ -121,14 +242,34 @@ class CarsTable extends React.Component {
                 key: 'bis',
                 filteredValue: filteredInfo.bis || null,
                 onFilter: (value, record) => record.bis.includes(value),
-                sorter: (a, b) => a.bis - b.bis,
+                sorter: (a, b) => {
+                    if (a.bis === '-') return -1
+                    if (b.bis === '-') return 1
+                    return a.bis - b.bis
+                },
                 sortOrder: sortedInfo.columnKey === 'bis' && sortedInfo.order,
                 ellipsis: true,
+                ...this.getColumnSearchProps('bis'),
+                render: (text, record) => (
+                    <Space size="middle" onClick={() => { if (record.bis !== '-') message.info('Выбран автомобиль ' + record.mark + ' ' + record.bis + " года ввыпуска") }}>
+                        {record.bis}
+                    </Space>
+                ),
             }
         ];
         return (
 
-            <Table columns={columns} dataSource={this.state.dataSource} onChange={this.handleChange} />
+            <Table columns={columns} dataSource={this.state.dataSource} onChange={this.handleChange}
+                onRow={(record, rowIndex) => {
+                    return {
+                        onClick: event => { }, // click row
+                        onDoubleClick: event => { }, // double click row
+                        onContextMenu: event => { }, // right button click row
+                        onMouseEnter: event => { }, // mouse enter row
+                        onMouseLeave: event => { }, // mouse leave row
+                    };
+                }}
+            />
 
         );
     }

@@ -5,7 +5,11 @@ const { SubMenu } = Menu;
 
 
 export default function CustomSider() {
-    return <Sider className="site-layout-background" width={200}>
+  return <Sider className="site-layout-background"  style={{
+    height: '100vh',
+    position: 'fixed',
+    left: 0,
+  }}>
     <Menu
       mode="inline"
       defaultSelectedKeys={['1']}

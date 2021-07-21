@@ -1,16 +1,13 @@
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Row, Col } from 'antd';
 import CarsTable from './components/CarsTable';
 import CustomSider from './components/CustomSider';
 
 const { Header, Content, Footer } = Layout;
-export let carsData;
-
-
 
 const App = () => {
   return (
     <Layout>
-      <Header className="header">
+      <Header className="header" style={{ position: 'fixed', zIndex: 1, width: '100%' }}>
         <div className="logo" />
         <Menu theme="dark" mode="horizontal" defaultSelectedKeys={['2']}>
           <Menu.Item key="1">nav 1</Menu.Item>
@@ -18,19 +15,29 @@ const App = () => {
           <Menu.Item key="3">nav 3</Menu.Item>
         </Menu>
       </Header>
-      <Content style={{ padding: '0 50px' }}>
-        <Layout className="site-layout-background" style={{ padding: '24px 0' }}>
-          
-          <CustomSider />
+      <Content>
+        <Layout className="site-layout-background" style={{ padding: '60px 0' }}>
+          <Row>
+            <Col sm={3}>
+              <Layout>
+                <CustomSider />
+              </Layout>
+            </Col>
 
-          <Content style={{ padding: '0 24px', minHeight: 280 }}>
+            <Col sm={21}>
+              <Layout>
+                <CarsTable />
+              </Layout>
+            </Col>
+          </Row>
 
-            <CarsTable carsData/>
 
-          </Content>
+          {/* <Layout style={{ padding: '0 24px 24px' }}>
+
+          </Layout> */}
         </Layout>
       </Content>
-      <Footer style={{ textAlign: 'center' }}>Ant Design ©2018 Created by Ant UED</Footer>
+      <Footer style={{ textAlign: 'center' }}>Grigoryan Andranik ©2021 Created by React and Ant UED</Footer>
     </Layout>
   )
 }
